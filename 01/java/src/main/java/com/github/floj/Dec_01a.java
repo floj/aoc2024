@@ -12,7 +12,7 @@ public class Dec_01a {
     var leftList = new LinkedList<Integer>();
     var rightList = new LinkedList<Integer>();
 
-    Files.lines(Path.of("src/main/resources/dec_01/input.txt"))
+    Files.lines(Path.of("src/main/resources/input.txt"))
         .map(String::trim)
         .filter(line -> !line.isBlank())
         .map(line -> line.trim().split("\\s+"))
