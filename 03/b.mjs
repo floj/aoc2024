@@ -5,17 +5,20 @@ const input = (await readFile("input-b.txt")).toString();
 let state;
 let a;
 let b;
-let enabled = true;
 let sum = 0;
 
 function reset() {
-  state = "read-instruction";
+  state = "enabled";
   a = undefined;
   b = undefined;
 }
 
 function isDigit(c) {
   return c >= "0" && c <= "9";
+}
+
+function peek(input, idx, match) {
+  return input.substring(idx, idx + match.length) === match;
 }
 
 reset();
@@ -25,25 +28,30 @@ const DO = "do()";
 const DONT = "don't()";
 
 for (let i = 0; i < input.length; ) {
-  //console.log(i, input[i], state, a, b, sum);
+  // console.log(i, input[i], state, a, b, sum);
   switch (state) {
-    case "read-instruction":
-      if (input.substring(i, i + MUL.length) === MUL) {
+    case "enabled":
+      if (peek(input, i, MUL)) {
         state = "read-num-a";
-        i += 4;
+        i += MUL.length;
         continue;
       }
-      if (input.substring(i, i + DO.length) === DO) {
-        i += DO.length;
-        enabled = true;
-        continue;
-      }
-      if (input.substring(i, i + DONT.length) === DONT) {
+      if (peek(input, i, DONT)) {
+        state = "disabled";
         i += DONT.length;
-        enabled = false;
         continue;
       }
-      i++;
+      // else advance one
+      ++i;
+      continue;
+    case "disabled":
+      if (peek(input, i, DO)) {
+        state = "enabled";
+        i += DO.length;
+        continue;
+      }
+      // else advance one
+      ++i;
       continue;
     case "read-num-a":
       // handle mul(,
@@ -82,12 +90,11 @@ for (let i = 0; i < input.length; ) {
     case "read-)":
       if (input[i] === ")") {
         // finalize
-        if (enabled) {
-          sum += a * b;
-        }
+        sum += a * b;
         ++i;
       }
       reset();
+      continue;
   }
 }
 
