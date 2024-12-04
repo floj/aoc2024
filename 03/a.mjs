@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-const input = (await readFile("input-a.txt")).toString();
+const input = (await readFile("input.txt")).toString();
 
 let state;
 let a;
