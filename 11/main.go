@@ -42,9 +42,7 @@ func setCache(remaining, s int, v uint64) uint64 {
 	return v
 }
 
-func CountStones(idx, s, remaining int) uint64 {
-	// fmt.Fprintf(os.Stderr, "stone %d (%d) @ %d\n", idx, s, remaining)
-
+func CountStones(s, remaining int) uint64 {
 	if remaining <= 0 {
 		return 1
 	}
@@ -56,7 +54,7 @@ func CountStones(idx, s, remaining int) uint64 {
 
 	// If the stone is engraved with the number 0, it is replaced by a stone engraved with the number 1.
 	if s == 0 {
-		v := CountStones(idx, 1, remaining-1)
+		v := CountStones(1, remaining-1)
 		return setCache(remaining, s, v)
 	}
 
@@ -68,16 +66,16 @@ func CountStones(idx, s, remaining int) uint64 {
 	num := strconv.Itoa(s)
 	if len(num)%2 == 0 {
 		front, _ := strconv.Atoi(num[0 : len(num)/2])
-		s1 := CountStones(idx, front, remaining-1)
+		s1 := CountStones(front, remaining-1)
 		back, _ := strconv.Atoi(num[len(num)/2:])
-		s2 := CountStones(idx, back, remaining-1)
+		s2 := CountStones(back, remaining-1)
 		v := s1 + s2
 		return setCache(remaining, s, v)
 	}
 
 	// If none of the other rules apply, the stone is replaced by a new stone;
 	// the old stone's number multiplied by 2024 is engraved on the new stone.
-	v := CountStones(idx, s*2024, remaining-1)
+	v := CountStones(s*2024, remaining-1)
 	return setCache(remaining, s, v)
 }
 
@@ -99,15 +97,14 @@ func runA(file string, blinks int) error {
 	wg := &sync.WaitGroup{}
 	sum := &atomic.Uint64{}
 
-	for i := range stones {
+	for i, num := range stones {
 		wg.Add(1)
-		go func(i int) {
+		go func() {
 			defer wg.Done()
-			fmt.Printf("counting stone %d of %d\n", i, len(stones))
-			v := CountStones(i, stones[i], blinks)
-			fmt.Printf("stone %d sum %d\n", i, v)
+			v := CountStones(num, blinks)
+			fmt.Printf("stone %d with value %d evolves info %d stones\n", i, num, v)
 			sum.Add(v)
-		}(i)
+		}()
 	}
 	wg.Wait()
 
