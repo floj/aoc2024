@@ -10,10 +10,8 @@ import (
 )
 
 type Grid struct {
-	field   []byte
-	visited []byte
-	costs   []int
-	cols    int
+	field []byte
+	cols  int
 }
 
 func NewGrid(in []byte) *Grid {
@@ -24,10 +22,8 @@ func NewGrid(in []byte) *Grid {
 	field := bytes.ReplaceAll(in, []byte{'\n'}, []byte{})
 
 	return &Grid{
-		field:   field,
-		visited: make([]byte, len(field)),
-		costs:   make([]int, len(field)),
-		cols:    cols,
+		field: field,
+		cols:  cols,
 	}
 }
 
