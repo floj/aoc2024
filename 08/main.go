@@ -216,6 +216,57 @@ func runA(file string) error {
 	return nil
 }
 
+func runB(file string) error {
+	in, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	g := NewGrid(in)
+	// find antennas
+	antennas := map[string][]coord{}
+	for i, v := range g.field {
+		if v == '.' {
+			continue
+		}
+		antennas[string(v)] = append(antennas[string(v)], g.MustI2p(i))
+	}
+
+	fmt.Fprintf(debugWriter, "antennas: %+v\n", antennas)
+
+	for k, vv := range antennas {
+		if len(vv) < 2 {
+			continue
+		}
+		pairs := permute(vv)
+		fmt.Fprintf(debugWriter, "checking %s: %v\n", string(k), pairs)
+		for _, p := range pairs {
+			dist := p.Distance()
+
+			pos := p.c1
+			for {
+				if _, ok := g.Set(pos, '#'); !ok {
+					break
+				}
+				pos = pos.Add(dist)
+			}
+
+			dist = p.Distance().Invert()
+			pos = p.c2
+			for {
+				if _, ok := g.Set(pos, '#'); !ok {
+					break
+				}
+				pos = pos.Add(dist)
+			}
+		}
+		fmt.Fprintf(debugWriter, "%s\n", g)
+	}
+	an := bytes.Count(g.field, []byte{'#'})
+	fmt.Println("antinodes", an)
+	return nil
+}
+
 var debugWriter = os.Stderr
 
 func main() {
@@ -223,5 +274,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "puzzle errored: %v\n", err)
 		os.Exit(1)
 	}
-
+	if err := runB("input.txt"); err != nil {
+		fmt.Fprintf(os.Stderr, "puzzle errored: %v\n", err)
+		os.Exit(1)
+	}
 }
