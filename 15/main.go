@@ -68,6 +68,9 @@ func (g *Grid) p2i(c coord) (int, bool) {
 	if c.x < 0 || c.y < 0 {
 		return -1, false
 	}
+	if c.x >= g.cols {
+		return -1, false
+	}
 	idx := c.y*g.cols + c.x
 	if idx >= len(g.field) {
 		return -1, false
