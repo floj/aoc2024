@@ -22,6 +22,10 @@ func (c coord) Add(o coord) coord {
 	return coord{x: c.x + o.x, y: c.y + o.y}
 }
 
+func (c coord) Sub(o coord) coord {
+	return coord{x: c.x - o.x, y: c.y - o.y}
+}
+
 func (c coord) Dist(o coord) float64 {
 	distX := math.Abs(float64(c.x) - float64(o.x))
 	distY := math.Abs(float64(c.y) - float64(o.y))
@@ -163,12 +167,10 @@ func (cc ClawConf) Moves(n *Node) []*Node {
 	nodes := []*Node{}
 	cA := n.c.Add(cc.A)
 	if cA.x <= cc.Prize.x && cA.y <= cc.Prize.y {
-		// nodes = append(nodes, &Node{c: cA, parent: n, score: n.score + cA.Dist(cc.Prize), cost: 1})
 		nodes = append(nodes, &Node{c: cA, parent: n, score: n.score + 3, cost: 3, btn: "A"})
 	}
 	cB := n.c.Add(cc.B)
 	if cB.x <= cc.Prize.x && cB.y <= cc.Prize.y {
-		// nodes = append(nodes, &Node{c: cB, parent: n, score: n.score + cB.Dist(cc.Prize)*3, cost: 3})
 		nodes = append(nodes, &Node{c: cB, parent: n, score: n.score + 1, cost: 1, btn: "B"})
 	}
 	return nodes
@@ -176,8 +178,8 @@ func (cc ClawConf) Moves(n *Node) []*Node {
 
 // use a* to find shortest path
 // implementation from https://de.wikipedia.org/wiki/A*-Algorithmus
-func (cc ClawConf) Solve(tfn TurnFn) *Node {
-	openList := []*Node{{c: coord{}}}
+func (cc ClawConf) Solve(start coord, tfn TurnFn) *Node {
+	openList := []*Node{{c: start}}
 	closedList := map[string]bool{}
 
 	for len(openList) > 0 {
@@ -219,7 +221,7 @@ func runA(file string) error {
 	total := 0
 	for _, conf := range confs {
 		fmt.Fprintf(debugW, "%+v\n", conf)
-		n := conf.Solve(conf.Moves)
+		n := conf.Solve(coord{}, conf.Moves)
 		if n == nil {
 			fmt.Println("no path found")
 			continue
@@ -244,22 +246,58 @@ func Precalc(cc ClawConf) TurnFn {
 }
 
 func runB(file string) error {
-	confs, err := GetClawConf(file, coord{x: 10000000000000, y: 10000000000000})
+	offset := coord{x: 10000000000000, y: 10000000000000}
+	confs, err := GetClawConf(file, offset)
 	if err != nil {
 		return err
 	}
 
 	total := 0
 	for _, conf := range confs {
+		fmt.Fprintf(debugW, "##############################\n")
 		fmt.Fprintf(debugW, "%+v\n", conf)
-		n := conf.Solve(Precalc(conf))
+
+		// find the cheepest diagonal path for a distance > 1000
+		diagonal := coord{x: 1000, y: 1000}
+		var n *Node
+		found := false
+
+		fmt.Fprintf(debugW, "-> checking diagonals\n")
+		for range 10000 {
+			testConf := ClawConf{A: conf.A, B: conf.B, Prize: diagonal}
+			// fmt.Fprintf(debugW, "-> checking diagonal %+v\n", testConf)
+			if n = testConf.Solve(coord{}, testConf.Moves); n != nil {
+				fmt.Println(n)
+				found = true
+				break
+			}
+			diagonal = diagonal.Add(coord{x: 1, y: 1})
+		}
+		if !found {
+			fmt.Printf("!!!!!!!! no diagonal path found: %v", conf)
+			continue
+		}
+
+		diagonalCost := n.TotalCost()
+		fmt.Fprintf(debugW, "diagonal to %s with cost %v\n", diagonal, diagonalCost)
+
+		// interpolate costs for diagonal until we are close to offset
+		mul := offset.x / diagonal.x
+		calcFrom := diagonal.Mul(mul)
+		totalDiag := mul * diagonalCost["sum"]
+
+		fmt.Fprintf(debugW, "cost to %s is %d\n", calcFrom, totalDiag)
+		fmt.Fprintf(debugW, "calculating remaining cost from %s to %s diff %s\n", calcFrom, conf.Prize, conf.Prize.Sub(calcFrom))
+
+		n = conf.Solve(calcFrom, conf.Moves)
 		if n == nil {
 			fmt.Println("no path found")
 			continue
 		}
+
 		costs := n.TotalCost()
 		fmt.Println("costs", costs)
-		total += costs["sum"]
+		total += costs["sum"] + totalDiag
 	}
 
 	fmt.Println("total", total)
@@ -269,12 +307,12 @@ func runB(file string) error {
 var debugW = os.Stderr
 
 func main() {
-	if err := runA("input.txt"); err != nil {
-		fmt.Fprintf(os.Stderr, "puzzle errored with %v\n", err)
-		os.Exit(1)
-	}
-	// if err := runB("input-test.txt"); err != nil {
+	// if err := runA("input.txt"); err != nil {
 	// 	fmt.Fprintf(os.Stderr, "puzzle errored with %v\n", err)
 	// 	os.Exit(1)
 	// }
+	if err := runB("input.txt"); err != nil {
+		fmt.Fprintf(os.Stderr, "puzzle errored with %v\n", err)
+		os.Exit(1)
+	}
 }
